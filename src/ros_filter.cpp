@@ -58,6 +58,7 @@ namespace RobotLocalization
       latestControl_(),
       latestControlTime_(0),
       nhLocal_("~"),
+      noRotationMode_(false),
       printDiagnostics_(true),
       gravitationalAcc_(9.80665),
       publishTransform_(true),
@@ -223,6 +224,33 @@ namespace RobotLocalization
     meas->latestControl_ = latestControl_;
     meas->latestControlTime_ = latestControlTime_.toSec();
     measurementQueue_.push(meas);
+  }
+
+  template<typename T>
+  void RosFilter<T>::forceNoRotation(Eigen::VectorXd &measurement,
+                                     Eigen::MatrixXd &measurementCovariance,
+                                     std::vector<int> &updateVector)
+  {
+    measurement(StateMemberRoll) = 0.0;
+    measurement(StateMemberPitch) = 0.0;
+    measurement(StateMemberYaw) = 0.0;
+    measurement(StateMemberVroll) = 0.0;
+    measurement(StateMemberVpitch) = 0.0;
+    measurement(StateMemberVyaw) = 0.0;
+
+    measurementCovariance(StateMemberRoll, StateMemberRoll) = 1e-6;
+    measurementCovariance(StateMemberPitch, StateMemberPitch) = 1e-6;
+    measurementCovariance(StateMemberYaw, StateMemberYaw) = 1e-6;
+    measurementCovariance(StateMemberVroll, StateMemberVroll) = 1e-6;
+    measurementCovariance(StateMemberVpitch, StateMemberVpitch) = 1e-6;
+    measurementCovariance(StateMemberVyaw, StateMemberVyaw) = 1e-6;
+
+    updateVector[StateMemberRoll] = 1;
+    updateVector[StateMemberPitch] = 1;
+    updateVector[StateMemberYaw] = 1;
+    updateVector[StateMemberVroll] = 1;
+    updateVector[StateMemberVpitch] = 1;
+    updateVector[StateMemberVyaw] = 1;
   }
 
   template<typename T>
@@ -706,6 +734,9 @@ namespace RobotLocalization
     // Determine if we're in 2D mode
     nhLocal_.param("two_d_mode", twoDMode_, false);
 
+    // Determine if we're in no-rotation mode
+    nhLocal_.param("no_rotation_mode", noRotationMode_, false);
+
     // Smoothing window size
     nhLocal_.param("smooth_lagged_data", smoothLaggedData_, false);
     nhLocal_.param("history_length", historyLength_, 0.0);
@@ -827,6 +858,7 @@ namespace RobotLocalization
              "\nfrequency is " << frequency_ <<
              "\nsensor_timeout is " << filter_.getSensorTimeout() <<
              "\ntwo_d_mode is " << (twoDMode_ ? "true" : "false") <<
+             "\nno_rotation_mode is " << (noRotationMode_ ? "true" : "false") <<
              "\nsmooth_lagged_data is " << (smoothLaggedData_ ? "true" : "false") <<
              "\nhistory_length is " << historyLength_ <<
              "\nuse_control is " << (useControl_ ? "true" : "false") <<
@@ -1366,12 +1398,13 @@ namespace RobotLocalization
                twoDMode_ == false) ||
               (static_cast<StateMembers>(stateVar) == StateMemberRoll &&
                twistVarCounts[static_cast<StateMembers>(StateMemberVroll)] == 0 &&
-               twoDMode_ == false) ||
+               twoDMode_ == false && noRotationMode_ == false) ||
               (static_cast<StateMembers>(stateVar) == StateMemberPitch &&
                twistVarCounts[static_cast<StateMembers>(StateMemberVpitch)] == 0 &&
-               twoDMode_ == false) ||
+               twoDMode_ == false && noRotationMode_ == false) ||
               (static_cast<StateMembers>(stateVar) == StateMemberYaw &&
-               twistVarCounts[static_cast<StateMembers>(StateMemberVyaw)] == 0))
+               twistVarCounts[static_cast<StateMembers>(StateMemberVyaw)] == 0 &&
+               noRotationMode_ == false))
           {
             std::stringstream stream;
             stream << "Neither " << stateVariableNames_[stateVar] << " nor its "
@@ -2302,6 +2335,12 @@ namespace RobotLocalization
       {
         forceTwoD(measurement, measurementCovariance, updateVector);
       }
+
+      // 8. Handle no-rotation mode
+      if (noRotationMode_)
+      {
+        forceNoRotation(measurement, measurementCovariance, updateVector);
+      }
     }
     else
     {
@@ -2685,6 +2724,12 @@ namespace RobotLocalization
           forceTwoD(measurement, measurementCovariance, updateVector);
         }
 
+        // 9. Handle no-rotation mode
+        if (noRotationMode_)
+        {
+          forceNoRotation(measurement, measurementCovariance, updateVector);
+        }
+
         retVal = true;
       }
     }
@@ -2837,6 +2882,12 @@ namespace RobotLocalization
       if (twoDMode_)
       {
         forceTwoD(measurement, measurementCovariance, updateVector);
+      }
+
+      // 8. Handle no-rotation mode
+      if (noRotationMode_)
+      {
+        forceNoRotation(measurement, measurementCovariance, updateVector);
       }
     }
     else

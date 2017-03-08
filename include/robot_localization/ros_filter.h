@@ -152,6 +152,19 @@ template<class T> class RosFilter
                             const double mahalanobisThresh,
                             const ros::Time &time);
 
+    //! @brief Method for zeroing out angles within measurements
+    //! @param[out] measurement - The measurement whose angles will be zeroed out
+    //! @param[out] measurementCovariance - The covariance of the measurement
+    //! @param[out] updateVector - The boolean update vector of the measurement
+    //!
+    //! If we're in no-rotation mode, then for every measurement from every sensor,
+    //! we call this. It sets the angles and angular velocities to 0, gives those
+    //! variables tiny variances, and sets their updateVector values to 1.
+    //!
+    void forceNoRotation(Eigen::VectorXd &measurement,
+                         Eigen::MatrixXd &measurementCovariance,
+                         std::vector<int> &updateVector);
+
     //! @brief Method for zeroing out 3D variables within measurements
     //! @param[out] measurement - The measurement whose 3D variables will be zeroed out
     //! @param[out] measurementCovariance - The covariance of the measurement
@@ -490,6 +503,13 @@ template<class T> class RosFilter
     //! @brief Local node handle (for params)
     //!
     ros::NodeHandle nhLocal_;
+
+    //! @brief Whether or not we're in no-rotation mode
+    //!
+    //! If this is true, the filter binds all angles and angular
+    //! velocities to 0 for every measurement
+    //!
+    bool noRotationMode_;
 
     //! @brief tf frame name for the robot's odometry (world-fixed) frame
     //!
