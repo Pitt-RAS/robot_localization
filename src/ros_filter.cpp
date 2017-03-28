@@ -2248,20 +2248,14 @@ namespace RobotLocalization
         if(::fabs(msg->orientation_covariance[0] + 1) < 1e-9)
         {
           // Imu message contains no orientation, so we should use orientation
-          // from filter state to transform and remove acceleration
-          const Eigen::VectorXd &state = filter_.getState();
-          tf2::Vector3 stateTmp(state(StateMemberRoll),
-                                state(StateMemberPitch),
-                                state(StateMemberYaw));
-          // transform state orientation to IMU frame
+          // from tf to transform and remove acceleration
           tf2::Transform imuFrameTrans;
           RosFilterUtilities::lookupTransformSafe(tfBuffer_,
                                                   msgFrame,
                                                   targetFrame,
                                                   msg->header.stamp,
                                                   imuFrameTrans);
-          stateTmp = imuFrameTrans.getBasis() * stateTmp;
-          curAttitude.setRPY(stateTmp.getX(), stateTmp.getY(), stateTmp.getZ());
+          curAttitude = imuFrameTrans.getRotation().inverse();
         }
         else
         {
