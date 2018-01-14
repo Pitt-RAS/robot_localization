@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(robot_localization)
 
+set(CMAKE_BUILD_TYPE "Release")
+
 find_package(catkin REQUIRED COMPONENTS
   diagnostic_msgs
   diagnostic_updater
