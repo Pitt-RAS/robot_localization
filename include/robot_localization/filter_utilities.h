@@ -33,7 +33,14 @@
 #ifndef ROBOT_LOCALIZATION_FILTER_UTILITIES_H
 #define ROBOT_LOCALIZATION_FILTER_UTILITIES_H
 
+// BAD HEADER
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#pragma GCC diagnostic ignored "-Wignored-attributes"
+#pragma GCC diagnostic ignored "-Wmisleading-indentation"
 #include <Eigen/Dense>
+#pragma GCC diagnostic pop
+// END BAD HEADER
 
 #include <iomanip>
 #include <iostream>
